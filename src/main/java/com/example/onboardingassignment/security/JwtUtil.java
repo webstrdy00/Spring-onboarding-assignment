@@ -36,6 +36,7 @@ public class JwtUtil {
     public static final String AUTHORIZATION_KEY = "auth";
     // Token 식별자
     public static final String BEARER_PREFIX = "Bearer ";
+
     // AccessToken 블랙리스트
     private static final String BLACKLIST_PREFIX = "blacklist:";
     // Access 토큰 만료시간
@@ -163,7 +164,7 @@ public class JwtUtil {
         }
     }
 
-    // Refresh Token 검증 (Access Token 검증과 동일한 로직 사용)
+    // Refresh Token 검증
     public boolean validateRefreshToken(String token) {
         logger.info("JWT refresh token : "+token);
         return validateToken(token);
