@@ -58,6 +58,7 @@ public class SecurityConfig {
                 authorizeHttpRequests
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/signup", "/sign", "/oauth2/**", "/error").permitAll()// 로그인, 회원가입 필터 통과
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()  // Swagger UI 접근 허용
                         .anyRequest().authenticated()     // 그 외 모든 요청 인증처리
         );
 

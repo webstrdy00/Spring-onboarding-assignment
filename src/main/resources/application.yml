@@ -34,6 +34,17 @@ spring:
         use_sql_comments: true
         default_batch_fetch_size: 100
 
+springdoc:
+  default-produces-media-type: application/json
+  default-consumes-media-type: application/json
+  swagger-ui:
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    display-request-duration: true
+    operations-sorter: method
+  api-docs:
+    path: /api-docs
+
 jwt:
   secret.key: ${JWT_SECRET_KEY}
 

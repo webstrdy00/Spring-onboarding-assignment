@@ -31,7 +31,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain filterChain) throws ServletException, IOException {
         String path = req.getRequestURI();
         // 로그인, 회원가입 요청은 이 필터를 건너뜁니다.
-        if (path.equals("/signup") || path.equals("/sign") || path.equals("/actuator/health") || path.equals("/") || path.equals("/error") || path.equals("/favicon.ico")){
+        if (path.startsWith("/swagger-ui") || path.startsWith("/api-docs") || path.equals("/signup") || path.equals("/sign") || path.equals("/actuator/health") || path.equals("/") || path.equals("/error") || path.equals("/favicon.ico")){
             filterChain.doFilter(req, res);
             return;
         }
