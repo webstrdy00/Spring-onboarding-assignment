@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  redis:
+    container_name: onboarding-redis
+    image: redis:7.2-alpine
+    command: redis-server --requirepass 000614
+    labels:
+      - "name=redis"
+      - "mode=standalone"
+    ports:
+      - 6379:6379
