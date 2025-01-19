@@ -375,7 +375,7 @@ http://3.37.224.232:8080/swagger-ui/index.html#/
   - [x] Swagger UI 로 접속 가능하게 하기
     ![image](https://github.com/user-attachments/assets/2b06983d-e1be-4654-a58a-503178520697)
     ![image](https://github.com/user-attachments/assets/b66538bd-9ca6-44b2-ab14-09a5e8b24a25)
-- [x] API 접근과 검증
+- [x] AI-assisted programming
   - [x] AI 에게 코드리뷰 받아보기
 - [x] Refactoring
   - [x] 피드백 받아서 코드 개선하기
