@@ -30,6 +30,11 @@ public class SecurityConfig {
     }
 
     @Bean
+    public JwtLogoutFilter jwtLogoutFilter(){
+        return new JwtLogoutFilter(jwtUtil);
+    }
+
+    @Bean
     public JwtExceptionFilter jwtExceptionFilter(){
         return new JwtExceptionFilter();
     }
@@ -57,7 +62,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(authorizeHttpRequests ->
                 authorizeHttpRequests
                         .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/signup", "/sign", "/oauth2/**", "/error").permitAll()// 로그인, 회원가입 필터 통과
+                        .requestMatchers("/signup", "/sign", "/signout", "/oauth2/**", "/error").permitAll()// 로그인, 회원가입 필터 통과
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/api-docs/**").permitAll()  // Swagger UI 접근 허용
                         .anyRequest().authenticated()     // 그 외 모든 요청 인증처리
         );
@@ -65,6 +70,7 @@ public class SecurityConfig {
         // 필터 관리
         http.addFilterBefore(jwtExceptionFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtLogoutFilter(), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

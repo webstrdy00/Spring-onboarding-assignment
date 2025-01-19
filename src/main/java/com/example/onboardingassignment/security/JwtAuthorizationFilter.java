@@ -36,6 +36,16 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             return;
         }
 
+        // 로그아웃 요청은 인증 검사만 하고 사용자 정보 조회는 하지 않음
+        if (path.equals("/signout")) {
+            log.info("JwtAuthenticationFilter 시작: {}", req.getRequestURI());
+            String accessToken = jwtUtil.getJwtFromHeader(req);
+            if (StringUtils.hasText(accessToken) && jwtUtil.validateToken(accessToken)) {
+                filterChain.doFilter(req, res);
+                return;
+            }
+        }
+
         try {
             String accessToken = jwtUtil.getJwtFromHeader(req);
             log.info("Extracted accessToken from header: {}", accessToken);

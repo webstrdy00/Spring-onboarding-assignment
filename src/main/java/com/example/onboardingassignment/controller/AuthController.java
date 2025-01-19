@@ -96,4 +96,24 @@ public class AuthController {
     public ResponseEntity<ApiResponse<SignResponse>> sign(@Valid @RequestBody SignRequestDto signRequestDto){
         return ResponseEntity.ok(ApiResponse.success(authService.sign(signRequestDto)));
     }
+
+    // 로그아웃
+    @Operation(
+            summary = "로그아웃",
+            description = "사용자 로그아웃을 처리합니다. 토큰이 필요합니다."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "로그아웃 성공"
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "인증 실패"
+            )
+    })
+    @PostMapping("/signout")
+    public ResponseEntity<ApiResponse<String>> signout(){
+        return ResponseEntity.ok(ApiResponse.success(authService.signout()));
+    }
 }
