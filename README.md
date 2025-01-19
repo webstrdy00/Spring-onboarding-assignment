@@ -370,8 +370,8 @@ http://3.37.224.232:8080/swagger-ui/index.html#/
       ```
 - [x] 배포해보기
   - [x] AWS EC2 에 배포하기
-    - [x] CI-CD 구현하기 (Github Actions, dockehub 활용)
-- [x] AI-assisted programming
+    - [x] CI-CD 구현하기 (Github Actions, dockerhub 활용)
+- [x] API 접근과 검증
   - [x] Swagger UI 로 접속 가능하게 하기
     ![image](https://github.com/user-attachments/assets/2b06983d-e1be-4654-a58a-503178520697)
     ![image](https://github.com/user-attachments/assets/b66538bd-9ca6-44b2-ab14-09a5e8b24a25)
