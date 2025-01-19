@@ -84,10 +84,14 @@ public class AuthService {
         }
 
         // Access Token 생성
-        String accessToken = jwtUtil.createAccessToken(user.getUserName(), user.getRole());
+        String accessToken = JwtUtil.BEARER_PREFIX + jwtUtil.createAccessToken(user.getUserName(), user.getRole());
 
         return SignResponse.builder()
                 .token(accessToken)
                 .build();
+    }
+
+    public String signout() {
+        return "로그아웃에 성공했습니다.";
     }
 }
