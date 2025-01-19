@@ -7,6 +7,7 @@
 - [x] Spring Security를 이용한 Filter에 대한 이해
   - [x] JwtAuthenticationFilter 구현
   - [x] JwtAuthorizationFilter 구현
+  - [x] JwtLogoutFilter 구현
   - [x] JwtExceptionFilter 구현
   - [x] SecurityConfig 설정
 - [x] JWT와 구체적인 알고리즘의 이해
