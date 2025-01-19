@@ -1,6 +1,7 @@
 # Spring-onboarding-assignment
 ## 🏫 1. 프로젝트 소개
 - Spring Security 이해와 JWT 활용 및 JUnit 활용
+- **3.37.224.232:8080** 으로 요청시 기능 테스트 가능
 
 ## ✅ 2. 프로젝트 요구 사항
 - [x] Spring Security를 이용한 Filter에 대한 이해
@@ -138,3 +139,248 @@
    - 비교적 긴 유효기간 (예: 1주)
    - 보안을 위해 데이터베이스에 저장
 </details>
+
+<details>
+<summary><b>토큰 발행과 유효성 확인</b></summary>
+
+### 1. 토큰 발행 테스트
+#### 1.1 Access Token 발행
+- [x] 유효한 사용자 정보로 Access Token 생성 성공
+ ```java
+ @Test
+ void Access_Token_생성_성공() {
+     String username = "testUser";
+     UserRole role = UserRole.ROLE_USER;
+     String token = jwtUtil.createAccessToken(username, role);
+     
+     assertThat(token).isNotNull();
+     Claims claims = jwtUtil.getUserInfoFromToken(token);
+     assertThat(claims.getSubject()).isEqualTo(username);
+     assertThat(claims.get("auth")).isEqualTo(role.getAuthority());
+ }
+```
+#### 1.2 Refresh Token 발행
+- [x] 유효한 사용자 정보로 Refresh Token 생성 및 Redis 저장
+ ```java
+@Test
+void Refresh_Token_생성_성공() {
+    String username = "testUser";
+    UserRole role = UserRole.ROLE_USER;
+    String token = jwtUtil.createRefreshToken(username, role);
+    
+    assertThat(token).isNotNull();
+    verify(redisTemplate).opsForValue().set(
+        eq(username), anyString(), eq(REFRESH_TOKEN_TIME), any()
+    );
+}
+```
+
+### 2. 토큰 검증 테스트
+#### 2.1 Access Token 검증
+- [x] 유효한 Access Token 검증 성공
+ ```java
+@Test
+void Access_Token_검증_성공() {
+    String token = jwtUtil.createAccessToken("testUser", UserRole.ROLE_USER);
+    boolean isValid = jwtUtil.validateToken(token);
+    assertThat(isValid).isTrue();
+}
+```
+- [x] 만료된 Access Token 검증
+ ```java
+@Test
+void 만료된_Access_Token_검증() {
+    String token = jwtUtil.createToken("testUser", UserRole.ROLE_USER, -1);
+    assertThatThrownBy(() -> jwtUtil.validateToken(token))
+        .isInstanceOf(GlobalException.class);
+}
+```
+
+#### 2.2 Refresh Token 검증
+- [x] 유효한 Refresh Token 검증 성공
+ ```java
+@Test
+void Refresh_Token_검증_성공() {
+    String token = jwtUtil.createRefreshToken("testUser", UserRole.ROLE_USER);
+    boolean isValid = jwtUtil.validateRefreshToken(token);
+    assertThat(isValid).isTrue();
+}
+```
+
+- [x] Redis에 저장된 Refresh Token 일치 여부 확인
+ ```java
+@Test
+void Redis에_저장된_RefreshToken_확인() {
+    String username = "testUser";
+    String token = jwtUtil.createRefreshToken(username, UserRole.ROLE_USER);
+    
+    when(redisTemplate.opsForValue().get(username)).thenReturn(token);
+    Optional<String> savedToken = jwtUtil.getRefreshTokenFromRedis(username);
+    
+    assertThat(savedToken).isPresent();
+    assertThat(savedToken.get()).isEqualTo(token);
+}
+```
+</details>
+
+<details>
+<summary><b>유닛 테스트 작성</b></summary>
+
+### 테스트 작성 시 주의사항
+1. **테스트 격리**
+  - 각 테스트는 독립적으로 실행 가능해야 함
+  - @BeforeEach로 테스트 환경 초기화
+2. **명확한 테스트 네이밍**
+  - 테스트 목적이 명확히 드러나도록 작성
+  - 한글 사용 가능
+3. **Given-When-Then 패턴**
+  - Given: 테스트 준비
+  - When: 테스트 실행
+  - Then: 결과 검증
+
+### JwtUtil 테스트
+```java
+@ExtendWith(MockitoExtension.class)
+class JwtUtilTest {
+   @Mock
+   private RedisTemplate<String, String> redisTemplate;
+
+   @Mock
+   private ValueOperations<String, String> valueOperations;
+
+   private JwtUtil jwtUtil;
+   private final String TEST_SECRET_KEY = "c3ByaW5nLWJvb3Qtc2VjdXJpdHktand0LXR1dG9yaWFsLWppd29vbi1zcHJpbmctYm9vdC1zZWN1cml0eS1qd3QtdHV0b3JpYWwK";
+
+   @BeforeEach
+   void setUp() {
+       jwtUtil = new JwtUtil(redisTemplate);
+       ReflectionTestUtils.setField(jwtUtil, "secretKey", TEST_SECRET_KEY);
+       jwtUtil.init();
+   }
+
+   @Nested
+   @DisplayName("AccessToken 테스트")
+   class AccessTokenTest {
+       @Test
+       @DisplayName("AccessToken 생성 성공")
+       void createAccessToken_Success() {
+           // given
+           String username = "testUser";
+           UserRole role = UserRole.ROLE_USER;
+
+           // when
+           String token = jwtUtil.createAccessToken(username, role);
+
+           // then
+           assertThat(token).isNotNull();
+           Claims claims = jwtUtil.getUserInfoFromToken(token);
+           assertThat(claims.getSubject()).isEqualTo(username);
+           assertThat(claims.get(JwtUtil.AUTHORIZATION_KEY)).isEqualTo(role.getAuthority());
+       }
+
+       @Test
+       @DisplayName("만료된 AccessToken 검증")
+       void validateExpiredAccessToken() {
+           // given
+           String username = "testUser";
+           UserRole role = UserRole.ROLE_USER;
+           String token = jwtUtil.createToken(username, role, -1);
+
+           // when & then
+           assertThatThrownBy(() -> jwtUtil.validateToken(token))
+               .isInstanceOf(GlobalException.class);
+       }
+   }
+
+   @Nested
+   @DisplayName("RefreshToken 테스트")
+   class RefreshTokenTest {
+       @BeforeEach
+       void setUpRedis() {
+           when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+       }
+
+       @Test
+       @DisplayName("RefreshToken 생성 및 Redis 저장")
+       void createAndSaveRefreshToken() {
+           // given
+           String username = "testUser";
+           UserRole role = UserRole.ROLE_USER;
+
+           // when
+           String token = jwtUtil.createRefreshToken(username, role);
+
+           // then
+           assertThat(token).isNotNull();
+           verify(valueOperations).set(
+               eq(username),
+               anyString(),
+               eq(jwtUtil.REFRESH_TOKEN_TIME),
+               any()
+           );
+       }
+   }
+}
+```
+</details>
+
+## 🔍 4. API 명세서
+http://3.37.224.232:8080/swagger-ui/index.html#/
+
+## 🏗️ 5. 작업 진행 사항
+- [x] 테스트 완성
+  - [x] 백엔드 유닛 테스트 완성하기
+- [x] 로직 작성
+  - [x] 백엔드 로직을 Spring Boot로
+  - [x] 회원가입 - /signup
+    - [x] Request Message
+      ```json
+      {
+      	"username": "JIN HO",
+      	"password": "12341234",
+      	"nickname": "Mentos"
+      }
+      ```
+    - [x] Response Message
+      ```json
+      {
+      	"username": "JIN HO",
+      	"nickname": "Mentos",
+      	"authorities": [
+      			{
+      					"authorityName": "ROLE_USER"
+      			}
+      	]		
+      }
+      ```
+  - [x] 로그인 - /sign
+    - [x] Request Message
+      ```json
+      {
+      	"username": "JIN HO",
+      	"password": "12341234"
+      }
+      ```
+    - [x] Response Message
+      ```json
+      {
+      	"token": "eKDIkdfjoakIdkfjpekdkcjdkoIOdjOKJDFOlLDKFJKL"
+      }
+      ```
+- [x] 배포해보기
+  - [x] AWS EC2 에 배포하기
+    - [x] CI-CD 구현하기 (Github Actions, dockehub 활용)
+- [x] AI-assisted programming
+  - [x] Swagger UI 로 접속 가능하게 하기
+    ![image](https://github.com/user-attachments/assets/2b06983d-e1be-4654-a58a-503178520697)
+    ![image](https://github.com/user-attachments/assets/b66538bd-9ca6-44b2-ab14-09a5e8b24a25)
+- [x] API 접근과 검증
+  - [x] AI 에게 코드리뷰 받아보기
+- [x] Refactoring
+  - [x] 피드백 받아서 코드 개선하기
+    - [x] 로그아웃시 Access Token, Refresh Token 삭제 기능 추가
+    - [x] 로그인시 필터에서 Refresh Token 발급하게 코드 수정
+- [x] 마무리
+  - [x] AWS EC2 재배포하기
+- [x] 최종
+  - [x] 과제 제출
