@@ -2,7 +2,7 @@ name: Deploy to Production
 
 on:
   push:
-    branches: [ main, feature/ci-cd ]
+    branches: [ main ]
 
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/onboarding-spring

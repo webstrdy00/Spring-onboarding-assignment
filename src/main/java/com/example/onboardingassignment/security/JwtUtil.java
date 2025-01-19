@@ -62,6 +62,18 @@ public class JwtUtil {
         return createToken(userName, role, ACCESS_TOKEN_TIME);
     }
 
+    // 로그아웃 시 AccessToken을 블랙리스트에 추가
+    public void addToBlacklist(String token) {
+        Claims claims = getUserInfoFromToken(token);
+        // 토큰의 남은 유효시간 계산
+        long expiration = claims.getExpiration().getTime() - System.currentTimeMillis();
+        if (expiration > 0) {
+            String blacklistKey = BLACKLIST_PREFIX + token;
+            // 토큰의 남은 유효기간만큼만 블랙리스트에 저장
+            redisTemplate.opsForValue().set(blacklistKey, "blacklisted", expiration, TimeUnit.MILLISECONDS);
+        }
+    }
+
     // RefreshToken 생성
     public String createRefreshToken(String userName, UserRole role) {
         String token = createToken(userName, role, REFRESH_TOKEN_TIME);
@@ -99,17 +111,22 @@ public class JwtUtil {
     }
 
     // RefreshToken 업데이트 메소드 수정
-    public String updateRefreshToken(String email, UserRole role) {
-        String newToken = createToken(email, role, REFRESH_TOKEN_TIME);
+    public String updateRefreshToken(String userName, UserRole role) {
+        String newToken = createToken(userName, role, REFRESH_TOKEN_TIME);
         // Redis에서 기존 토큰 삭제 후 새 토큰 저장
-        redisTemplate.delete(email);
+        redisTemplate.delete(userName);
         redisTemplate.opsForValue().set(
-                email,
+                userName,
                 newToken,
                 REFRESH_TOKEN_TIME,
                 TimeUnit.MILLISECONDS
         );
         return newToken;
+    }
+
+    // RefreshToken 삭제 메소드
+    public void deleteRefreshToken(String userName) {
+        redisTemplate.delete(userName);
     }
 
     // 토큰 생성
@@ -141,6 +158,13 @@ public class JwtUtil {
     // 토큰 검증
     public boolean validateToken(String token) {
         log.info("Validating JWT token");
+
+        // 먼저 블랙리스트 확인
+        if (isTokenBlacklisted(token)) {
+            log.error("Blacklisted token is used");
+            throw new GlobalException(GlobalExceptionConst.UNAUTHORIZED_OWNERTOKEN);
+        }
+
         //토큰 유효성 검증
         try {
             Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
@@ -162,6 +186,11 @@ public class JwtUtil {
             log.error("Internal server error", e);
             throw new GlobalException(GlobalExceptionConst.UNAUTHORIZED_OWNERTOKEN);
         }
+    }
+
+    // 토큰이 블랙리스트에 있는지 확인
+    public boolean isTokenBlacklisted(String token) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + token));
     }
 
     // Refresh Token 검증
