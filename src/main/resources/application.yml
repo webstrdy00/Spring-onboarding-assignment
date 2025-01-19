@@ -45,6 +45,18 @@ springdoc:
   api-docs:
     path: /api-docs
 
+logging:
+  level:
+    root: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+    com.example.onboardingassignment: INFO
+    # JWT 관련 로그는 WARN 레벨로 설정
+    com.example.onboardingassignment.security: WARN
+    # SQL 로그는 INFO 레벨로 설정
+    org.hibernate.SQL: INFO
+    org.hibernate.type: WARN
+
 jwt:
   secret.key: ${JWT_SECRET_KEY}
 

@@ -3,19 +3,19 @@ package com.example.onboardingassignment.security;
 import com.example.onboardingassignment.entity.User;
 import com.example.onboardingassignment.enums.UserRole;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.StringReader;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -57,18 +57,19 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("로그인 성공시 RefreshToken 생성")
-    void createRefreshTokenOnLoginSuccess() throws ServletException, IOException {
+    void 로그인_성공시_RefreshToken_생성() throws ServletException, IOException {
         // given
         String username = "testUser";
         String requestBody = "{\"username\":\"" + username + "\",\"password\":\"password\"}";
         UserRole role = UserRole.ROLE_USER;
         String mockRefreshToken = "mocked.refresh.token";
 
+        // MockServletInputStream 생성
+        ServletInputStream inputStream = new MockServletInputStream(requestBody.getBytes());
+
         given(request.getRequestURI()).willReturn("/sign");
         given(request.getMethod()).willReturn("POST");
-        given(request.getReader()).willReturn(new BufferedReader(new StringReader(requestBody)));
-        given(response.isCommitted()).willReturn(false);
+        given(request.getInputStream()).willReturn(inputStream);
         given(response.getStatus()).willReturn(200);
 
         User mockUser = mock(User.class);
@@ -76,8 +77,6 @@ class JwtAuthenticationFilterTest {
         given(mockUserDetails.getUser()).willReturn(mockUser);
         given(mockUser.getRole()).willReturn(role);
         given(userDetailsService.loadUserByUsername(username)).willReturn(mockUserDetails);
-
-        // createRefreshToken에 대한 mock 동작
         given(jwtUtil.createRefreshToken(username, role)).willReturn(mockRefreshToken);
 
         // when
@@ -89,18 +88,50 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("로그인 실패시 RefreshToken을 생성하지 않음")
-    void doNotCreateRefreshTokenOnLoginFailure() throws ServletException, IOException {
+    void 로그인_실패시_RefreshToken을_생성하지_않음() throws ServletException, IOException {
         // given
+        String username = "testUser";
+        String requestBody = "{\"username\":\"" + username + "\",\"password\":\"wrongPassword\"}";
+        ServletInputStream inputStream = new MockServletInputStream(requestBody.getBytes());
+
         given(request.getRequestURI()).willReturn("/sign");
         given(request.getMethod()).willReturn("POST");
-        given(response.isCommitted()).willReturn(false);
+        given(request.getInputStream()).willReturn(inputStream);
         given(response.getStatus()).willReturn(401);
 
         // when
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
         // then
-        verifyNoInteractions(jwtUtil);
+        verify(jwtUtil, never()).createRefreshToken(anyString(), any(UserRole.class));
+        verify(jwtUtil, never()).setRefreshTokenCookie(any(), anyString());
+    }
+
+    private static class MockServletInputStream extends ServletInputStream {
+        private final ByteArrayInputStream inputStream;
+
+        public MockServletInputStream(byte[] content) {
+            this.inputStream = new ByteArrayInputStream(content);
+        }
+
+        @Override
+        public int read() throws IOException {
+            return inputStream.read();
+        }
+
+        @Override
+        public boolean isFinished() {
+            return inputStream.available() == 0;
+        }
+
+        @Override
+        public boolean isReady() {
+            return true;
+        }
+
+        @Override
+        public void setReadListener(ReadListener readListener) {
+            throw new UnsupportedOperationException();
+        }
     }
 }
